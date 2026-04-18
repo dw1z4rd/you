@@ -1,15 +1,14 @@
-import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { computeStats, fetchRoomsFromRegistry } from '$lib/server/admin-stats';
 
 export const GET: RequestHandler = async ({ cookies, fetch }) => {
 	const session = cookies.get('admin_session');
-	if (!session || session !== (env.ADMIN_TOKEN ?? '')) {
+	if (!session || session !== (process.env.ADMIN_TOKEN ?? '')) {
 		return new Response('Unauthorized', { status: 401 });
 	}
 
-	const host  = env.PARTYKIT_HOST ?? 'localhost:1999';
-	const token = env.ADMIN_TOKEN   ?? '';
+	const host  = process.env.PARTYKIT_HOST ?? 'localhost:1999';
+	const token = process.env.ADMIN_TOKEN   ?? '';
 
 	let closed = false;
 
@@ -20,9 +19,9 @@ export const GET: RequestHandler = async ({ cookies, fetch }) => {
 
 			const push = async () => {
 				if (closed) return;
-				const rooms = await fetchRoomsFromRegistry(fetch, host, token);
+				const { rooms, registryOnline } = await fetchRoomsFromRegistry(fetch, host, token);
 				try {
-					controller.enqueue(encode(computeStats(rooms)));
+					controller.enqueue(encode({ ...computeStats(rooms), registryOnline }));
 				} catch {
 					// Controller closed — stop
 					closed = true;

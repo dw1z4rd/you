@@ -2,11 +2,12 @@ import type { RoomEntry } from '../../../party/registry';
 import type { UniverseSchema } from '$lib/universe/types';
 
 export interface Stats {
-	totalRooms:    number;
-	activeRooms:   number;
-	activePlayers: number;
-	rooms:         RoomEntry[];
-	distributions: { [K in keyof UniverseSchema]: Record<string, number> };
+	totalRooms:     number;
+	activeRooms:    number;
+	activePlayers:  number;
+	rooms:          RoomEntry[];
+	distributions:  { [K in keyof UniverseSchema]: Record<string, number> };
+	registryOnline: boolean;
 }
 
 const SCHEMA_FIELDS: (keyof UniverseSchema)[] = [
@@ -24,11 +25,12 @@ export function computeStats(rooms: RoomEntry[]): Stats {
 		}
 	}
 	return {
-		totalRooms:    rooms.length,
-		activeRooms:   rooms.filter(r => r.playerCount > 0).length,
-		activePlayers: rooms.reduce((sum, r) => sum + r.playerCount, 0),
-		rooms:         rooms.sort((a, b) => b.lastActive - a.lastActive),
+		totalRooms:     rooms.length,
+		activeRooms:    rooms.filter(r => r.playerCount > 0).length,
+		activePlayers:  rooms.reduce((sum, r) => sum + r.playerCount, 0),
+		rooms:          rooms.sort((a, b) => b.lastActive - a.lastActive),
 		distributions,
+		registryOnline: true, // overridden by callers that know the actual state
 	};
 }
 
@@ -36,16 +38,16 @@ export async function fetchRoomsFromRegistry(
 	fetchFn: typeof fetch,
 	host: string,
 	token: string
-): Promise<RoomEntry[]> {
+): Promise<{ rooms: RoomEntry[]; registryOnline: boolean }> {
 	const protocol = host.startsWith('localhost') ? 'http' : 'https';
 	try {
 		const res = await fetchFn(`${protocol}://${host}/parties/registry/global`, {
 			headers: { 'x-admin-token': token },
 		});
-		if (!res.ok) return [];
+		if (!res.ok) return { rooms: [], registryOnline: false };
 		const data = await res.json() as { rooms: Record<string, RoomEntry> };
-		return Object.values(data.rooms ?? {});
+		return { rooms: Object.values(data.rooms ?? {}), registryOnline: true };
 	} catch {
-		return [];
+		return { rooms: [], registryOnline: false };
 	}
 }

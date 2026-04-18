@@ -13,7 +13,8 @@
 
 		es.onmessage = (e) => {
 			try {
-				stats       = JSON.parse(e.data) as Stats;
+				const d = JSON.parse(e.data) as Stats;
+				stats       = d;
 				lastUpdated = new Date();
 				stale       = false;
 			} catch { /* ignore malformed */ }
@@ -52,6 +53,9 @@
 	<div class="flex items-baseline justify-between mb-16">
 		<h1 class="text-white/20 text-xs uppercase tracking-widest">you. / admin</h1>
 		<div class="flex items-baseline gap-6">
+			{#if !stats.registryOnline}
+				<span class="text-yellow-400/50 text-xs uppercase tracking-widest">partykit offline — run: bunx partykit dev</span>
+			{/if}
 			<span class="text-xs font-mono" class:text-red-400={stale} class:text-white={!stale} style="opacity: 0.2">
 				{stale ? 'connection lost' : `updated ${lastUpdated.toLocaleTimeString()}`}
 			</span>
