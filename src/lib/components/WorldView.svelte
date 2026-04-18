@@ -5,8 +5,10 @@
 	import type { PlayerInfo } from '$lib/multiplayer/types';
 	import { createScene, createCamera, createRenderer } from '$lib/world/scene';
 	import { buildLighting } from '$lib/world/lighting';
-	import { buildAtmosphere } from '$lib/world/atmosphere';
+	import { buildAtmosphere, buildParticles, updateParticles } from '$lib/world/atmosphere';
 	import { buildTerrain, updateTerrain } from '$lib/world/terrain';
+	import { buildWater, updateWater } from '$lib/world/water';
+	import { buildObjects } from '$lib/world/objects';
 	import { PlayerController } from '$lib/world/player';
 
 	let {
@@ -21,7 +23,6 @@
 
 	let canvas: HTMLCanvasElement;
 
-	// Mutable snapshot read by the Three.js loop each frame
 	let playersSnapshot = players;
 	$effect(() => { playersSnapshot = players; });
 
@@ -32,11 +33,16 @@
 
 		buildLighting(params, scene);
 		buildAtmosphere(params, scene);
-		const terrain = buildTerrain(params, scene);
-		const player  = new PlayerController(camera, params);
 
-		// Orbs for other players
-		const orbs = new Map<string, THREE.Mesh>();
+		const terrain   = buildTerrain(params, scene);
+		const water     = buildWater(params, scene);
+		const particles = buildParticles(params, scene);
+		buildObjects(params, scene, terrain.getHeight);
+
+		const player = new PlayerController(camera, params, terrain.getHeight);
+
+		// Other-player orbs
+		const orbs    = new Map<string, THREE.Mesh>();
 		const orbGeom = new THREE.SphereGeometry(0.4, 12, 8);
 		const orbMat  = new THREE.MeshStandardMaterial({
 			color: 0xffffff,
@@ -48,13 +54,9 @@
 
 		function syncOrbs() {
 			const snap = playersSnapshot;
-
-			// Remove orbs for departed players
 			for (const [id, mesh] of orbs) {
 				if (!snap[id]) { scene.remove(mesh); orbs.delete(id); }
 			}
-
-			// Add orbs for new players, update positions
 			for (const [id, info] of Object.entries(snap)) {
 				let mesh = orbs.get(id);
 				if (!mesh) {
@@ -67,7 +69,7 @@
 		}
 
 		let rafId: number;
-		let lastTime = performance.now();
+		let lastTime   = performance.now();
 		let frameCount = 0;
 
 		function resize() {
@@ -87,12 +89,15 @@
 			lastTime = now;
 			frameCount++;
 
+			const time = now / 1000;
+
 			player.update(delta);
-			updateTerrain(terrain, params, now / 1000);
+			updateTerrain(terrain, params, time);
+			updateWater(water, time);
+			if (particles) updateParticles(particles, params, time, delta);
 			syncOrbs();
 			renderer.render(scene, camera);
 
-			// Report position every ~5 frames (~80ms at 60fps)
 			if (frameCount % 5 === 0) onPosition?.(player.getPosition());
 
 			rafId = requestAnimationFrame(loop);

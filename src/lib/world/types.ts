@@ -4,6 +4,9 @@ export interface WorldParams {
 	fogColor: number;
 	fogNear: number;
 	fogFar: number;
+	skyZenithColor: number;
+	skyHorizonColor: number;
+	starCount: number;
 
 	// Lighting
 	ambientColor: number;
@@ -23,12 +26,20 @@ export interface WorldParams {
 	terrainMetalness: number;
 	terrainEmissive: number;
 	terrainEmissiveIntensity: number;
+	terrainNoiseScale: number;
+	terrainOctaves: number;
+
+	// Water
+	waterEnabled: boolean;
+	waterColor: number;
+	waterOpacity: number;
 
 	// Particles
 	particlesEnabled: boolean;
 	particleColor: number;
 	particleCount: number;
 	particleSize: number;
+	particleDrift: 'none' | 'gentle' | 'chaotic';
 
 	// Objects
 	objectDensity: number;
@@ -45,10 +56,10 @@ export interface WorldParams {
 	cyclicalTime: boolean;
 
 	// Special effects derived from metaphysical axioms
-	gazeReactive: boolean;           // consciousness === 'substrate': world responds to player gaze
+	gazeReactive: boolean;
 	matterSolidity: 'solid' | 'translucent' | 'ghostly';
 	lifeMovement: 'none' | 'subtle' | 'active';
-	entropyLevel: 0 | 1 | 2;        // 0 = pristine, 1 = weathered, 2 = ruined
+	entropyLevel: 0 | 1 | 2;
 
 	// Bioluminescence
 	bioluminescent: boolean;
