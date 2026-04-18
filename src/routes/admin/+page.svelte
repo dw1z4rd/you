@@ -1,9 +1,28 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import type { Stats } from './+page.server';
 
 	let { data }: { data: PageData } = $props();
-	const stats: Stats = data.stats;
+	let stats       = $state<Stats>(data.stats);
+	let lastUpdated = $state(new Date());
+	let stale       = $state(false);
+
+	onMount(() => {
+		const es = new EventSource('/admin/stream');
+
+		es.onmessage = (e) => {
+			try {
+				stats       = JSON.parse(e.data) as Stats;
+				lastUpdated = new Date();
+				stale       = false;
+			} catch { /* ignore malformed */ }
+		};
+
+		es.onerror = () => { stale = true; };
+
+		return () => es.close();
+	});
 
 	const schemaFields = [
 		'consciousness', 'identity', 'time', 'causality', 'meaning',
@@ -32,11 +51,17 @@
 	<!-- Header -->
 	<div class="flex items-baseline justify-between mb-16">
 		<h1 class="text-white/20 text-xs uppercase tracking-widest">you. / admin</h1>
-		<form method="POST" action="/admin/login?/logout">
-			<button type="submit" class="text-white/15 text-xs uppercase tracking-widest hover:text-white/40 transition-colors bg-transparent border-none cursor-pointer">
-				logout
-			</button>
-		</form>
+		<div class="flex items-baseline gap-6">
+			<span class="text-xs font-mono" class:text-red-400={stale} class:text-white={!stale} style="opacity: 0.2">
+				{stale ? 'connection lost' : `updated ${lastUpdated.toLocaleTimeString()}`}
+			</span>
+			<span class={stale ? 'text-red-400/40' : 'text-green-400/40'} style="font-size: 8px">●</span>
+			<form method="POST" action="/admin/login?/logout">
+				<button type="submit" class="text-white/15 text-xs uppercase tracking-widest hover:text-white/40 transition-colors bg-transparent border-none cursor-pointer">
+					logout
+				</button>
+			</form>
+		</div>
 	</div>
 
 	<!-- Overview cards -->
