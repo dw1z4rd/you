@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__memory__memory_search",
+      "mcp__memory__memory_list",
+      "Bash(npm install*)",
+      "Bash(git init*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git log*)"
+    ]
+  }
+}

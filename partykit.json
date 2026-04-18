@@ -1,0 +1,8 @@
+{
+  "name": "you-game",
+  "main": "party/index.ts",
+  "parties": {
+    "registry": "party/registry.ts"
+  },
+  "compatibilityDate": "2024-01-01"
+}

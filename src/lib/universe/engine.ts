@@ -3,7 +3,8 @@ import type { UniverseState, QuestionResult } from './types';
 
 const FIRST_QUESTION: QuestionResult = {
 	question: 'Does the void notice itself?',
-	domain: 'consciousness'
+	domain: 'consciousness',
+	choices: ['yes', 'no']
 };
 
 const QUESTION_SYSTEM_PROMPT = `You are the cosmogonic engine of "You." — a philosophical game where a universe crystallizes from a player's answers.
@@ -19,7 +20,13 @@ RULES:
 - Questions grow progressively more specific as axioms accumulate
 
 Return ONLY valid JSON — no markdown, no explanation, no code fences:
-{"question": "...", "domain": "..."}`;
+{"question": "...", "domain": "...", "choices": ["option A", "option B"]}
+
+CRITICAL — choices rules:
+- choices[0] and choices[1] must be the exact two options named inside the question you just wrote
+- If you write "Is it A or B?", choices must be ["a", "b"] — short, lowercase versions of those same words
+- Never reuse choices from a prior question
+- For yes/no questions use ["yes", "no"]`;
 
 const AXIOM_SYSTEM_PROMPT = `You are the axiom engine of "You." — you translate a player's answer into a precise metaphysical truth that governs their universe.
 
@@ -55,8 +62,12 @@ export async function generateNextQuestion(
 	const jsonMatch = raw.match(/\{[\s\S]*?\}/);
 	if (!jsonMatch) throw new Error('No JSON found in question response');
 
-	const parsed = JSON.parse(jsonMatch[0]) as { question: string; domain: string };
-	return { question: parsed.question, domain: parsed.domain };
+	const parsed = JSON.parse(jsonMatch[0]) as { question: string; domain: string; choices?: [string, string] };
+	return {
+		question: parsed.question,
+		domain: parsed.domain,
+		choices: parsed.choices ?? ['yes', 'no']
+	};
 }
 
 export async function deriveAxiom(
