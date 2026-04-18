@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { env } from '$env/dynamic/private';
 import type { RoomEntry } from '../../../../party/registry';
 import type { UniverseSchema } from '$lib/universe/types';
 
@@ -15,8 +16,8 @@ type SchemaDistributions = {
 };
 
 export const load: PageServerLoad = async ({ fetch }) => {
-	const host     = process.env.PARTYKIT_HOST    ?? 'localhost:1999';
-	const token    = process.env.ADMIN_TOKEN       ?? '';
+	const host     = env.PARTYKIT_HOST    ?? 'localhost:1999';
+	const token    = env.ADMIN_TOKEN      ?? '';
 	const protocol = host.startsWith('localhost')   ? 'http' : 'https';
 
 	let rooms: RoomEntry[] = [];
