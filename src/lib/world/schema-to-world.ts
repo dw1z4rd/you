@@ -75,9 +75,14 @@ export function schemaToWorld(schema: UniverseSchema): WorldParams {
 		schema.life === 'present'  ? 'active' :
 		schema.life === 'potential'? 'subtle' : 'none';
 
-	// Emissive glow for bioluminescent/absent light worlds
-	const terrainEmissive = bioluminescent ? c.particle : 0x000000;
-	const terrainEmissiveIntensity = bioluminescent ? 0.15 : 0;
+	// Emissive glow — bioluminescent: particle color; absent: faint palette glow so
+	// geometry is barely perceptible in total darkness (especially important for wireframe matter)
+	const terrainEmissive =
+		bioluminescent        ? c.particle :
+		schema.light === 'absent' ? c.ambient  : 0x000000;
+	const terrainEmissiveIntensity =
+		bioluminescent        ? 0.15 :
+		schema.light === 'absent' ? 0.45  : 0;
 
 	// Particles enabled when bioluminescent OR life is present/potential
 	const particlesEnabled = bioluminescent || schema.life !== 'absent';

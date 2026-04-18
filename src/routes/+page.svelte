@@ -129,9 +129,47 @@
 	function enterWorld() {
 		if (!synthesis) return;
 		localStorage.setItem('you_synthesis', JSON.stringify(synthesis));
+		localStorage.setItem('you_universe',  JSON.stringify(universe));
 		const room   = generateRoomId();
 		const secret = generateSecret();
 		goto(`/world?room=${room}&secret=${secret}`);
+	}
+
+	function downloadLog() {
+		if (!synthesis) return;
+
+		const lines: string[] = [
+			'YOU.',
+			`Generated: ${new Date().toISOString()}`,
+			'',
+			'QUESTIONS & ANSWERS',
+			'─'.repeat(40),
+			'',
+		];
+
+		universe.answers.forEach((a, i) => {
+			lines.push(`${i + 1}. [${a.domain.toUpperCase()}]`);
+			lines.push(`   Q: ${a.question}`);
+			lines.push(`   A: ${a.answer}`);
+			lines.push(`   Axiom: ${a.axiom}`);
+			lines.push('');
+		});
+
+		lines.push('SYNTHESIS', '─'.repeat(40), '');
+		lines.push(synthesis.narrative, '');
+
+		lines.push('SCHEMA', '─'.repeat(40), '');
+		for (const [k, v] of Object.entries(synthesis.schema)) {
+			lines.push(`  ${k}: ${v}`);
+		}
+
+		const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+		const url  = URL.createObjectURL(blob);
+		const a    = document.createElement('a');
+		a.href     = url;
+		a.download = `you-${new Date().toISOString().slice(0, 10)}.txt`;
+		a.click();
+		URL.revokeObjectURL(url);
 	}
 </script>
 
@@ -178,7 +216,15 @@
 				{/each}
 			</div>
 			<div class="mt-16 border-t border-white/10 pt-8 flex items-center justify-between">
-				<p class="text-white/15 text-xs tracking-widest uppercase">{universe.answers.length} axioms</p>
+				<div class="flex items-center gap-6">
+					<p class="text-white/15 text-xs tracking-widest uppercase">{universe.answers.length} axioms</p>
+					<button
+						onclick={downloadLog}
+						class="text-white/20 text-xs tracking-widest uppercase hover:text-white/50 transition-colors duration-300 cursor-pointer border-none bg-transparent"
+					>
+						download log
+					</button>
+				</div>
 				<button
 					onclick={enterWorld}
 					class="text-white/30 text-xs tracking-widest uppercase hover:text-white/70 transition-colors duration-500 cursor-pointer border-none bg-transparent"

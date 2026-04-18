@@ -34,14 +34,6 @@
 		const room = new RoomClient(roomId, host);
 		client = room;
 
-		room.onWelcome = ({ yourId, isOwner: io, state, players: ps }) => {
-			myId = yourId;
-			isOwner = io;
-			permissions = state.permissions;
-			params = schemaToWorld(state.schema);
-			players = ps;
-		};
-
 		room.onPlayerJoined = (player) => {
 			players = { ...players, [player.id]: player };
 		};
@@ -66,25 +58,44 @@
 
 		room.onError = (msg) => { error = msg; };
 
-		// Owner sends the schema; visitor sends nothing extra
-		if (ownerSecret) {
-			let synthesis: SynthesisResult | null = null;
-			try {
-				const raw = localStorage.getItem('you_synthesis');
-				if (raw) synthesis = JSON.parse(raw);
-			} catch { /* ignore */ }
+		// Load synthesis once — used by both the join message and the fallback
+		let synthesis: SynthesisResult | null = null;
+		try {
+			const raw = localStorage.getItem('you_synthesis');
+			if (raw) synthesis = JSON.parse(raw);
+		} catch { /* ignore */ }
 
+		// Fall back to solo (no multiplayer) if PartyKit doesn't respond in 6s
+		const fallbackTimer = setTimeout(() => {
+			if (params) return;
+			room.dispose();
+			client = null;
+			if (!synthesis) { error = 'No universe found. Begin again.'; return; }
+			params = schemaToWorld(synthesis.schema);
+			isOwner = true;
+		}, 6000);
+
+		room.onWelcome = ({ yourId, isOwner: io, state, players: ps }) => {
+			clearTimeout(fallbackTimer);
+			myId = yourId;
+			isOwner = io;
+			permissions = state.permissions;
+			params = schemaToWorld(state.schema);
+			players = ps;
+		};
+
+		if (ownerSecret) {
 			room.join({
 				ownerSecret,
 				schema:    synthesis?.schema,
 				universe:  { answers: [] },
-				synthesis: synthesis,
+				synthesis,
 			});
 		} else {
 			room.join();
 		}
 
-		return () => room.dispose();
+		return () => { clearTimeout(fallbackTimer); room.dispose(); };
 	});
 
 	function handlePosition(pos: { x: number; y: number; z: number; rotY: number }) {

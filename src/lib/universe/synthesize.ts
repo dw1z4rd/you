@@ -40,14 +40,25 @@ export async function synthesizeUniverse(
 	const raw = await provider.generateText(prompt, {
 		systemPrompt: SYNTHESIS_SYSTEM_PROMPT,
 		temperature: 0.6,
-		maxTokens: 1000
+		maxTokens: 2000
 	});
 
 	if (!raw) throw new Error('Synthesis engine returned null');
 
+	// Match outermost {...} — handles markdown code fences and preamble text
 	const jsonMatch = raw.match(/\{[\s\S]*\}/);
-	if (!jsonMatch) throw new Error('No JSON found in synthesis response');
+	if (!jsonMatch) throw new Error(`No JSON in synthesis response. Raw: ${raw.slice(0, 200)}`);
 
-	const parsed = JSON.parse(jsonMatch[0]) as SynthesisResult;
+	let parsed: SynthesisResult;
+	try {
+		parsed = JSON.parse(jsonMatch[0]) as SynthesisResult;
+	} catch {
+		throw new Error(`Malformed JSON in synthesis response. Raw: ${raw.slice(0, 300)}`);
+	}
+
+	if (!parsed.narrative || !parsed.schema) {
+		throw new Error(`Synthesis JSON missing narrative or schema fields. Got keys: ${Object.keys(parsed).join(', ')}`);
+	}
+
 	return parsed;
 }
